@@ -4,8 +4,8 @@ from telegram import Update, Bot
 from telegram.ext import Dispatcher
 import os
 
-TOKEN_UPLOADER = "توکن ربات آپلودر"
-TOKEN_CHECKER = "توکن ربات چکر"
+TOKEN_UPLOADER = "7920918778:AAFM8JNgk4cUhn0_P81hkB1Y0cYifjdSt-M"
+TOKEN_CHECKER = "7679592392:AAHi7YBXB3wmCdsrzTnyURwyljDRvMckoVY"
 
 bot_uploader = Bot(token=TOKEN_UPLOADER)
 bot_checker = Bot(token=TOKEN_CHECKER)
