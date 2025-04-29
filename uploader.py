@@ -1,13 +1,12 @@
 from flask import Flask, request
 from telegram import Update, Bot
-from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
+from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 import threading
 import json
 import os
 import time
 import requests
 
-# توکن‌ها
 TOKEN_UPLOADER = "7920918778:AAFM8JNgk4cUhn0_P81hkB1Y0cYifjdSt-M"
 TOKEN_CHECKER = "7679592392:AAHi7YBXB3wmCdsrzTnyURwyljDRvMckoVY"
 
@@ -19,11 +18,9 @@ app = Flask(__name__)
 dispatcher_uploader = Dispatcher(bot_uploader, None, workers=4)
 dispatcher_checker = Dispatcher(bot_checker, None, workers=4)
 
-# لیست ادمین‌ها
 ADMIN_IDS = [5459406429, 6387942633, 7189616405]
 sessions = {}
 
-# وضعیت‌ها
 STATE_NONE = 'none'
 STATE_POST_FORWARD = 'post_forward'
 STATE_POST_CAPTION = 'post_caption'
@@ -36,7 +33,6 @@ API_URL = f'https://api.telegram.org/bot{TOKEN_UPLOADER}'
 CHANNEL_USERNAME = '@hottof'
 CHANNEL_TAG = '@hottof | تُفِ داغ'
 
-# توابع ارسال
 def send_message(chat_id, text, reply_markup=None):
     payload = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
     if reply_markup:
@@ -68,7 +64,6 @@ def delete_message(chat_id, message_id):
         'message_id': message_id
     })
 
-# پنل‌ها
 def main_panel():
     return {'keyboard': [[{'text': 'پست'}, {'text': 'سوپر'}]], 'resize_keyboard': True}
 
@@ -78,11 +73,9 @@ def confirm_panel():
 def no_cover_inline():
     return {'inline_keyboard': [[{'text': 'ندارم', 'callback_data': 'no_cover'}]]}
 
-# تابع ارسال تأخیری
 def schedule_send(func, delay_minutes):
     threading.Thread(target=lambda: (time.sleep(delay_minutes * 60), func())).start()
 
-# تابع نهایی ارسال
 def handle_send(user_id, chat_id):
     data = sessions.get(user_id, {})
     if data.get('type') == 'post':
@@ -92,16 +85,15 @@ def handle_send(user_id, chat_id):
     sessions[user_id] = {'state': STATE_NONE}
     send_message(chat_id, 'با موفقیت ارسال شد.', reply_markup=main_panel())
 
-# هندلر پیام ربات آپلودر
 def handle_uploader(update: Update, context):
     message = update.message
+    if not message:
+        return
     user_id = message.from_user.id
     chat_id = message.chat_id
     text = message.text or ''
-
     if user_id not in ADMIN_IDS:
         return
-
     state = sessions.get(user_id, {}).get('state', STATE_NONE)
 
     if text in ['/start', '/panel']:
@@ -166,33 +158,20 @@ def handle_uploader(update: Update, context):
         except:
             send_message(chat_id, 'عدد معتبر وارد کنید.')
 
-# کال‌بک اینلاین
 def callback_handler(update: Update, context):
     query = update.callback_query
+    if not query:
+        return
     user_id = query.from_user.id
     chat_id = query.message.chat.id
-
     if query.data == 'no_cover':
         delete_message(chat_id, query.message.message_id)
         sessions[user_id]['state'] = STATE_SUPER_CAPTION
         send_message(chat_id, 'لطفا کپشن را وارد کنید:')
 
-# اضافه‌کردن هندلرها
+dispatcher_uploader.add_handler(CallbackQueryHandler(callback_handler))
 dispatcher_uploader.add_handler(MessageHandler(Filters.all, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.command, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.text, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.video, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.photo, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.forwarded, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.status_update, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.caption, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.reply, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.update, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.entity, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.all, handle_uploader))
-dispatcher_uploader.add_handler(MessageHandler(Filters.callback_query, callback_handler))
 
-# مسیرهای وبهوک
 @app.route(f"/{TOKEN_UPLOADER}", methods=["POST"])
 def webhook_uploader():
     update = Update.de_json(request.get_json(force=True), bot_uploader)
@@ -210,8 +189,8 @@ def home():
     return 'Bot is alive!'
 
 def set_webhooks():
-    bot_uploader.set_webhook(f"https://your-render-url/{TOKEN_UPLOADER}")
-    bot_checker.set_webhook(f"https://your-render-url/{TOKEN_CHECKER}")
+    bot_uploader.set_webhook("https://three-ta-bot.onrender.com/" + TOKEN_UPLOADER)
+    bot_checker.set_webhook("https://three-ta-bot.onrender.com/" + TOKEN_CHECKER)
 
 if __name__ == "__main__":
     set_webhooks()
